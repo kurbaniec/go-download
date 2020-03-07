@@ -40,6 +40,22 @@ func ReadMetaData() {
 		fmt.Println("MARSHALL ERROR")
 	}
 	fmt.Println(dat["playabilityStatus"])
+	fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
+	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"]
+	fmt.Println(formats)
+	for _, entry := range formats.([]interface{}) {
+		set := entry.(map[string]interface{})
+		fmt.Println(set["cipher"])
+		streamUrl, err := url.QueryUnescape(set["cipher"].(string))
+		if err != nil {
+			fmt.Println("STREAMURL AHHHHH!")
+			os.Exit(0)
+		}
+		fmt.Println(streamUrl)
+		fmt.Println(entry)
+		//fmt.Println(entry["url"])
+		fmt.Println("---")
+	}
 
 	//var raw map[string]interface{}
 	//json.Unmarshal(meta)
