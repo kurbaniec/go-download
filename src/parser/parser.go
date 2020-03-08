@@ -3,20 +3,18 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
 )
 
-func ReadMetaData() {
-	content, err := ioutil.ReadFile("meta1.txt")
-	if err != nil {
-		// TODO make ONE error exit function
-		fmt.Println("Something went wrong reading meta-data")
-		os.Exit(0)
-	}
-	metaEncoded := string(content)
+func GetConfig(videoUrl string) {
+	infoFile := GetVideoInfo(videoUrl)
+	embedFile := GetVideoEmbedPage(videoUrl)
+	//watchFile := GetVideoWatchPage(videoUrl)
+	getCipherSrc(embedFile)
+
+	metaEncoded := infoFile
 	//fmt.Println(metaEncoded)
 	metaDecoded, err := url.QueryUnescape(metaEncoded)
 	if err != nil {
@@ -46,6 +44,7 @@ func ReadMetaData() {
 	for _, entry := range formats.([]interface{}) {
 		set := entry.(map[string]interface{})
 		fmt.Println(set["cipher"])
+		/**
 		streamUrl, err := url.QueryUnescape(set["cipher"].(string))
 		if err != nil {
 			fmt.Println("STREAMURL AHHHHH!")
@@ -53,36 +52,53 @@ func ReadMetaData() {
 		}
 		fmt.Println(streamUrl)
 		fmt.Println(entry)
-		//fmt.Println(entry["url"])
-		fmt.Println("---")
+		fmt.Println(entry["url"])
+		fmt.Println("---")*/
 	}
 
 	//var raw map[string]interface{}
 	//json.Unmarshal(meta)
 }
 
+func getCipherSrc(embedFile string) {
+	search := "\"assets\":{\"js\":\""
+	searchLen := len(search)
+	index := strings.Index(embedFile, search)
+	assetBegin := embedFile[index+searchLen:]
+	assetEncoded := assetBegin[:strings.Index(assetBegin, "\"")]
+	assetDecoded, _ := url.QueryUnescape(assetEncoded)
+	asset := "https://youtube.com" + assetDecoded
+	fmt.Println(asset)
+}
+
 func getVideoId(videoUrl string) string {
 	return videoUrl[strings.Index(videoUrl, "watch?v=")+8:]
 }
 
-func GetVideoInfo(videoUrl string) {
+func GetVideoInfo(videoUrl string) string {
 	videoId := getVideoId(videoUrl)
 	eurl := url.QueryEscape("https://youtube.googleapis.com/v/" + videoId)
 	metaUrl := "https://youtube.com/get_video_info?video_id=" + videoId +
 		"&el=embedded&eurl=" + eurl + "&hl=en"
-	download("meta1.txt", metaUrl)
+	data, err := downloadAsString(metaUrl)
+	errorHandler(err)
+	return data
 }
 
-func GetVideoEmbedPage(videoUrl string) {
+func GetVideoEmbedPage(videoUrl string) string {
 	videoId := getVideoId(videoUrl)
 	metaUrl := "https://youtube.com/embed/" + videoId + "?disable_polymer=true&hl=en"
-	download("meta2.txt", metaUrl)
+	data, err := downloadAsString(metaUrl)
+	errorHandler(err)
+	return data
 }
 
-func GetVideoWatchPage(videoUrl string) {
+func GetVideoWatchPage(videoUrl string) string {
 	videoId := getVideoId(videoUrl)
 	metaUrl := "https://youtube.com/watch?v=" + videoId + "&disable_polymer=true&bpctr=9999999999&hl=en"
-	download("meta3.txt", metaUrl)
+	data, err := downloadAsString(metaUrl)
+	errorHandler(err)
+	return data
 }
 
 func download(fileName string, metaUrl string) {

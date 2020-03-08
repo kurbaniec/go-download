@@ -13,8 +13,5 @@ func main() {
 	//parser.DownloadMetaData(metaUrl)
 	//parser.ReadMetaData()
 
-	parser.GetVideoEmbedPage(testUrl)
-	parser.GetVideoInfo(testUrl)
-	parser.GetVideoWatchPage(testUrl)
-	parser.ReadMetaData()
+	parser.GetConfig(testUrl)
 }
