@@ -13,5 +13,7 @@ func main() {
 	//parser.DownloadMetaData(metaUrl)
 	//parser.ReadMetaData()
 
-	parser.GetConfig(testUrl)
+	cipherStore := map[string]*parser.CipherOperations{}
+
+	parser.GetConfig(testUrl, cipherStore)
 }

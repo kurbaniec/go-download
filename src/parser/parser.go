@@ -8,14 +8,24 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-func GetConfig(videoUrl string) {
-	infoFile := GetVideoInfo(videoUrl)
-	embedFile := GetVideoEmbedPage(videoUrl)
-	assetFile := getAssetFile(embedFile)
-	//watchFile := GetVideoWatchPage(videoUrl)
-	getCipherSrc(assetFile)
+func GetConfig(videoUrl string, cipherStore map[string]*CipherOperations) {
+	var infoFile, embedFile, assetUrl string
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go GetVideoInfo(videoUrl, &infoFile, &wg)
+	go GetVideoEmbedPage(videoUrl, &embedFile, &wg)
+	wg.Wait()
+	assetUrl = getAssetUrl(embedFile)
+
+	if _, ok := cipherStore[assetUrl]; !ok {
+		assetFile := getAssetFile(assetUrl)
+		cipherStore[assetUrl] = getCipherSrc(assetFile)
+	}
+
+	cipher := cipherStore[assetUrl]
 
 	metaEncoded := infoFile
 	//fmt.Println(metaEncoded)
@@ -47,6 +57,8 @@ func GetConfig(videoUrl string) {
 	for _, entry := range formats.([]interface{}) {
 		set := entry.(map[string]interface{})
 		fmt.Println(set["cipher"])
+		fmt.Println(buildStreamUrl(set["cipher"].(string), cipher))
+
 		/**
 		streamUrl, err := url.QueryUnescape(set["ciphe`].(string))
 		if err != nil {
@@ -63,7 +75,7 @@ func GetConfig(videoUrl string) {
 	//json.Unmarshal(meta)
 }
 
-func getCipherSrc(assetFile string) {
+func getCipherSrc(assetFile string) *CipherOperations {
 	regexFunc, err := regexp.Compile(`(\w+)=function\(\w+\){(\w+)=\w+\.split\(.*\);.*return.*\.join\(.*\)}`)
 	errorHandler(err)
 	cipherFunc := regexFunc.FindString(assetFile)
@@ -121,67 +133,30 @@ func getCipherSrc(assetFile string) {
 		fmt.Println(cipherBody)
 		fmt.Println(cipherAlgorithmName)
 		fmt.Println(cipherAlgorithmBody)
+
+		return operations
 	} else {
 		// TODO breaking youtube api change error
 	}
-
-	/**
-	regex, err := regexp2.Compile(
-		`(\w+)=function\(\w+\){(\w+)=\2\.split\(\x22{2}\);.*?return\s+\2\.join\(\x22{2}\)}`, 0)
-	errorHandler(err)
-	isMatch, err2 := regex.MatchString(assetFile)
-	errorHandler(err2)
-	if isMatch {
-		funcName, _ := regex.FindStringMatch(assetFile)
-		fmt.Println(funcName)
-		r2, _ := regexp2.Compile(`(?!h\.)` + regexp2.Escape(funcName.String()) + `=function\(\w+\)\{(.*?)\}`, 0)
-		isMatch, _ = r2.MatchString(assetFile)
-		if isMatch {
-			fmt.Println("OK!")
-		}
-	}*/
-
-	/**
-	patterns := [12]string{
-		`\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\b(?P<sig>[a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)`,
-		`(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)`,
-		`(["\'])signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-		`\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(`,
-	}
-
-	for _, pattern := range patterns {
-		rr  := regexp.MustCompile(pattern)
-		match := rr.MatchString(assetFile)
-		if match {
-			kek := rr.FindString(assetFile)
-			fmt.Println(kek)
-		}
-	}*/
+	return nil
 }
 
 func getVideoId(videoUrl string) string {
 	return videoUrl[strings.Index(videoUrl, "watch?v=")+8:]
 }
 
-func GetVideoInfo(videoUrl string) string {
+func GetVideoInfo(videoUrl string, output *string, wg *sync.WaitGroup) {
 	videoId := getVideoId(videoUrl)
 	eurl := url.QueryEscape("https://youtube.googleapis.com/v/" + videoId)
 	metaUrl := "https://youtube.com/get_video_info?video_id=" + videoId +
 		"&el=embedded&eurl=" + eurl + "&hl=en"
 	data, err := downloadAsString(metaUrl)
 	errorHandler(err)
-	return data
+	*output = data
+	wg.Done()
 }
 
-func GetVideoEmbedPage(videoUrl string) string {
+func GetVideoEmbedPage(videoUrl string, output *string, wg *sync.WaitGroup) {
 	flag := true
 	search := "\"assets\":{\"js\":\""
 	var result string
@@ -195,19 +170,22 @@ func GetVideoEmbedPage(videoUrl string) string {
 			result = data
 		}
 	}
-	return result
+	*output = result
+	wg.Done()
 }
 
-func getAssetFile(embedFile string) string {
+func getAssetUrl(embedFile string) string {
 	search := "\"assets\":{\"js\":\""
 	searchLen := len(search)
 	index := strings.Index(embedFile, search)
 	assetBegin := embedFile[index+searchLen:]
 	assetEncoded := assetBegin[:strings.Index(assetBegin, "\"")]
 	assetDecoded := strings.ReplaceAll(assetEncoded, "\\/", "/")
-	asset := "https://youtube.com" + assetDecoded
-	fmt.Println(asset)
-	assetFile, err := downloadAsString(asset)
+	return "https://youtube.com" + assetDecoded
+}
+
+func getAssetFile(assetUrl string) string {
+	assetFile, err := downloadAsString(assetUrl)
 	errorHandler(err)
 	return assetFile
 }

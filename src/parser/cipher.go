@@ -1,18 +1,18 @@
 package parser
 
-type cipherOperations struct {
+type CipherOperations struct {
 	operations []cipherOperation
 }
 
-func newCipherOperations() *cipherOperations {
-	return &cipherOperations{operations: nil}
+func newCipherOperations() *CipherOperations {
+	return &CipherOperations{operations: []cipherOperation{}}
 }
 
-func (c *cipherOperations) addOperation(operation cipherOperation) {
-	_ = append(c.operations, operation)
+func (c *CipherOperations) addOperation(operation cipherOperation) {
+	c.operations = append(c.operations, operation)
 }
 
-func (c *cipherOperations) decipher(input string) string {
+func (c *CipherOperations) decipher(input string) string {
 	output := input
 	for _, operation := range c.operations {
 		output = operation.decipher(output)
@@ -56,9 +56,9 @@ func newCipherSwap(index int) *cipherSwap {
 }
 
 func (c *cipherSwap) decipher(input string) string {
-	a, b := input[0], input[c.index]
-	a, b = b, a
-	return input
+	out := []rune(input)
+	out[0], out[c.index] = out[c.index], out[0]
+	return string(out)
 }
 
 func reverse(input string) string {
