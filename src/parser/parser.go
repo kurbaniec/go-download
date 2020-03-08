@@ -76,9 +76,12 @@ func getCipherSrc(embedFile string) {
 		cipherAlgorithmName := strings.Split(regexFunc.FindString(cipherBody), ".")[0]
 		//regexFunc, err = regexp.Compile(`var.*` + cipherAlgorithmName + `=\{(\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
 		//regexFunc, err = regexp.Compile(`var\s+` + cipherAlgorithmName + `=\{(\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
-		regexFunc, err = regexp.Compile(`(?s)var\s+` + cipherAlgorithmName + `\{(\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
+		//regexFunc, err = regexp.Compile(`(?s)var\s+` + cipherAlgorithmName + `={(\w+:function\(\w+(,\w+)?\){(.*?)},?){3};`)
+		//regexFunc, err = regexp.Compile(`(?s)var\s+` + cipherAlgorithmName + `={(\w+:function\(\w+\){\w+\.\w+\(\w?\.?\w?\)},?.?)`)
+		// Important (?s) allows to to interpret newlines and whitespaces for dot character
+		regexFunc, err = regexp.Compile(`var\s+` + cipherAlgorithmName + `=\{((?s)\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
 		errorHandler(err)
-		cipherAlgorithm := regexFunc.FindString(assetFile)
+		cipherAlgorithm := strings.ReplaceAll(regexFunc.FindString(assetFile), "\n", "")
 		fmt.Println(cipherName)
 		fmt.Println(cipherBody)
 		fmt.Println(cipherAlgorithmName)
