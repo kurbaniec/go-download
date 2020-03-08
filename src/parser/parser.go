@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dlclark/regexp2"
 	"net/url"
 	"os"
 	"strings"
@@ -66,9 +67,23 @@ func getCipherSrc(embedFile string) {
 	index := strings.Index(embedFile, search)
 	assetBegin := embedFile[index+searchLen:]
 	assetEncoded := assetBegin[:strings.Index(assetBegin, "\"")]
-	assetDecoded, _ := url.QueryUnescape(assetEncoded)
+	assetDecoded := strings.ReplaceAll(assetEncoded, "\\/", "/")
 	asset := "https://youtube.com" + assetDecoded
 	fmt.Println(asset)
+	assetFile, _ := downloadAsString(asset)
+	/**funcName, _ := regexp.Match(
+		`(\w+)=function\(\w+\){(\w+)=\2\.split\(\x22{2}\);.*?return\s+\2\.join\(\x22{2}\)}`,
+		[]byte(assetFile))
+	fmt.Println(funcName)*/
+	regex, err := regexp2.Compile(
+		`(\w+)=function\(\w+\){(\w+)=\2\.split\(\x22{2}\);.*?return\s+\2\.join\(\x22{2}\)}`, 0)
+	errorHandler(err)
+	isMatch, err2 := regex.MatchString(assetFile)
+	errorHandler(err2)
+	if isMatch {
+		funcName, _ := regex.FindStringMatch(assetFile)
+		fmt.Println(funcName)
+	}
 }
 
 func getVideoId(videoUrl string) string {
@@ -86,11 +101,20 @@ func GetVideoInfo(videoUrl string) string {
 }
 
 func GetVideoEmbedPage(videoUrl string) string {
-	videoId := getVideoId(videoUrl)
-	metaUrl := "https://youtube.com/embed/" + videoId + "?disable_polymer=true&hl=en"
-	data, err := downloadAsString(metaUrl)
-	errorHandler(err)
-	return data
+	flag := true
+	search := "\"assets\":{\"js\":\""
+	var result string
+	for flag {
+		videoId := getVideoId(videoUrl)
+		metaUrl := "https://youtube.com/embed/" + videoId + "?disable_polymer=true&hl=en"
+		data, err := downloadAsString(metaUrl)
+		errorHandler(err)
+		if strings.Contains(data, search) {
+			flag = false
+			result = data
+		}
+	}
+	return result
 }
 
 func GetVideoWatchPage(videoUrl string) string {
