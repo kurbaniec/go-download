@@ -6,14 +6,16 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 func GetConfig(videoUrl string) {
 	infoFile := GetVideoInfo(videoUrl)
 	embedFile := GetVideoEmbedPage(videoUrl)
+	assetFile := getAssetFile(embedFile)
 	//watchFile := GetVideoWatchPage(videoUrl)
-	getCipherSrc(embedFile)
+	getCipherSrc(assetFile)
 
 	metaEncoded := infoFile
 	//fmt.Println(metaEncoded)
@@ -61,31 +63,64 @@ func GetConfig(videoUrl string) {
 	//json.Unmarshal(meta)
 }
 
-func getCipherSrc(embedFile string) {
-	assetFile := getAssetFile(embedFile)
+func getCipherSrc(assetFile string) {
 	regexFunc, err := regexp.Compile(`(\w+)=function\(\w+\){(\w+)=\w+\.split\(.*\);.*return.*\.join\(.*\)}`)
 	errorHandler(err)
 	cipherFunc := regexFunc.FindString(assetFile)
 	if cipherFunc != "" {
 		fmt.Println(cipherFunc)
+
 		cipherName := cipherFunc[:strings.Index(cipherFunc, "=")]
 		cipherBody := cipherFunc[strings.Index(cipherFunc, "{")+1 : strings.Index(cipherFunc, "}")]
+		cipherStatements := strings.Split(cipherBody, ";")
 
 		regexFunc, err = regexp.Compile(`(\w+).\w+\(\w+,\d+\);`)
 		errorHandler(err)
 		cipherAlgorithmName := strings.Split(regexFunc.FindString(cipherBody), ".")[0]
-		//regexFunc, err = regexp.Compile(`var.*` + cipherAlgorithmName + `=\{(\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
-		//regexFunc, err = regexp.Compile(`var\s+` + cipherAlgorithmName + `=\{(\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
-		//regexFunc, err = regexp.Compile(`(?s)var\s+` + cipherAlgorithmName + `={(\w+:function\(\w+(,\w+)?\){(.*?)},?){3};`)
-		//regexFunc, err = regexp.Compile(`(?s)var\s+` + cipherAlgorithmName + `={(\w+:function\(\w+\){\w+\.\w+\(\w?\.?\w?\)},?.?)`)
 		// Important (?s) allows to to interpret newlines and whitespaces for dot character
 		regexFunc, err = regexp.Compile(`var\s+` + cipherAlgorithmName + `=\{((?s)\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
 		errorHandler(err)
-		cipherAlgorithm := strings.ReplaceAll(regexFunc.FindString(assetFile), "\n", "")
+		cipherAlgorithmBody := strings.ReplaceAll(regexFunc.FindString(assetFile), "\n", "")
+
+		operations := newCipherOperations()
+
+		for _, statement := range cipherStatements {
+			// Get function name of statement
+			//regexFunc, err = regexp.Compile(`\w+(?:.|\[)(""?\w+(?:"")?)]?\(`)
+			//errorHandler(err)
+			//statementName := regexFunc.FindString(statement)
+
+			statementName := statement[strings.Index(statement, ".")+1 : strings.Index(statement, "(")]
+
+			if statementName == "" {
+				continue
+			}
+
+			if check, _ := regexp.MatchString(statementName+`:\bfunction\b\([a],b\).(\breturn\b)?.?\w+\.`, cipherAlgorithmBody);
+			// Check if slice operation
+			check {
+				regexFunc, err = regexp.Compile(`\d+`)
+				errorHandler(err)
+				index, _ := strconv.Atoi(regexFunc.FindString(statement))
+				operations.addOperation(newCipherSlice(index))
+			} else if check, _ := regexp.MatchString(statementName+`:\bfunction\b\(\w+\,\w\).\bvar\b.\bc=a\b`, cipherAlgorithmBody);
+			// Check if swap operation
+			check {
+				regexFunc, err = regexp.Compile(`\d+`)
+				errorHandler(err)
+				index, _ := strconv.Atoi(regexFunc.FindString(statement))
+				operations.addOperation(newCipherSwap(index))
+			} else if check, _ := regexp.MatchString(statementName+`:\bfunction\b\(\w+\,\w\).\bvar\b.\bc=a\b`, cipherAlgorithmBody);
+			// Check if reverse operation
+			check {
+				operations.addOperation(newCipherReverse())
+			}
+		}
+
 		fmt.Println(cipherName)
 		fmt.Println(cipherBody)
 		fmt.Println(cipherAlgorithmName)
-		fmt.Println(cipherAlgorithm)
+		fmt.Println(cipherAlgorithmBody)
 	} else {
 		// TODO breaking youtube api change error
 	}
