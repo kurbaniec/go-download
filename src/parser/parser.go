@@ -11,7 +11,11 @@ import (
 	"sync"
 )
 
-func GetConfig(videoUrl string, cipherStore map[string]*CipherOperations) {
+func GetStreams(
+	videoUrl string,
+	cipherStore map[string]*CipherOperations,
+	audioStreams []AudioStream,
+) {
 	var infoFile, embedFile, assetUrl string
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -54,23 +58,22 @@ func GetConfig(videoUrl string, cipherStore map[string]*CipherOperations) {
 	//fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"]
 	//fmt.Println(formats)
+
 	for _, entry := range formats.([]interface{}) {
 		stream := entry.(map[string]interface{})
-		fmt.Println(stream["cipher"])
-		fmt.Println(buildStreamUrl(stream["cipher"].(string), cipher))
-		itag := strconv.Itoa(int(stream["itag"].(float64)))
-		fmt.Println(itag)
-		fmt.Println(getVideoQuality(itag))
-		contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
-		fmt.Println(contentLength)
-		container := stream["mimeType"]
-		fmt.Println(container)
-
-		fmt.Println("---")
+		mime := stream["mimeType"].(string)
+		if strings.HasPrefix(mime, "audio") {
+			// fmt.Println(stream["qualityLabel"]) // not available in audio
+			itag := int(stream["itag"].(float64))
+			audioEncoding, container := getAudioEncodingAndContainer(mime)
+			url := buildStreamUrl(stream["cipher"].(string), cipher)
+			contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
+			bitrate := int(stream["bitrate"].(float64))
+			newAudioStream := NewAudioStream(itag, url, contentLength, bitrate, container, audioEncoding)
+			audioStreams = append(audioStreams, newAudioStream)
+		}
 	}
-
-	//var raw map[string]interface{}
-	//json.Unmarshal(meta)
+	fmt.Println(audioStreams)
 }
 
 func getCipherSrc(assetFile string) *CipherOperations {

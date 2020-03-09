@@ -14,6 +14,7 @@ func main() {
 	//parser.ReadMetaData()
 
 	cipherStore := map[string]*parser.CipherOperations{}
+	audioStreams := make([]parser.AudioStream, 0, 10)
 
-	parser.GetConfig(testUrl, cipherStore)
+	parser.GetStreams(testUrl, cipherStore, audioStreams)
 }
