@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 func DownloadStream(stream parser.AudioStream) {
@@ -27,6 +28,7 @@ func DownloadStream(stream parser.AudioStream) {
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", stream.Url, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -47,6 +49,8 @@ func DownloadStream(stream parser.AudioStream) {
 				panic(err)
 			}
 		}
+	} else {
+		fmt.Println("Error: " + strconv.Itoa(res.StatusCode))
 	}
 
 }

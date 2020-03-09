@@ -6,13 +6,8 @@ import (
 )
 
 func main() {
-	testUrl := "https://www.youtube.com/watch?v=THRDQmJSBs4"
-	//metaUrl := parser.GetMetaUrl(testUrl)
-	//metaUrl := parser.Testo(testUrl)
-
-	//fmt.Println(metaUrl)
-	//parser.DownloadMetaData(metaUrl)
-	//parser.ReadMetaData()
+	//testUrl := "https://www.youtube.com/watch?v=THRDQmJSBs4"
+	testUrl := "https://www.youtube.com/watch?v=ADlGkXAz1D0"
 
 	cipherStore := map[string]*parser.CipherOperations{}
 	audioStreams := make([]parser.AudioStream, 0, 10)

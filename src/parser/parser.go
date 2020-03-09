@@ -59,6 +59,8 @@ func GetStreams(
 	//fmt.Println(formats)
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"].([]interface{})
 
+	fmt.Println("---")
+
 	wg.Add(len(formats))
 	for _, entry := range formats {
 		stream := entry.(map[string]interface{})
@@ -66,6 +68,11 @@ func GetStreams(
 		if strings.HasPrefix(mime, "audio") {
 			go addAudioStream(audioStreams, stream, cipher, &wg)
 		} else {
+			url, ok := stream["url"].(string)
+			if !ok {
+				url = buildStreamUrl(stream["cipher"].(string), cipher)
+			}
+			fmt.Println(url)
 			wg.Done()
 		}
 	}
@@ -120,7 +127,7 @@ func getCipherSrc(assetFile string) *CipherOperations {
 				errorHandler(err)
 				index, _ := strconv.Atoi(regexFunc.FindString(statement))
 				operations.addOperation(newCipherSwap(index))
-			} else if check, _ := regexp.MatchString(statementName+`:\bfunction\b\(\w+\,\w\).\bvar\b.\bc=a\b`, cipherAlgorithmBody);
+			} else if check, _ := regexp.MatchString(statementName+`:\bfunction\b\(\w+\).\b\w+\.reverse\(\)`, cipherAlgorithmBody);
 			// Check if reverse operation
 			check {
 				operations.addOperation(newCipherReverse())

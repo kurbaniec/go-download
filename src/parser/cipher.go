@@ -32,7 +32,8 @@ func newCipherReverse() *cipherReverse {
 }
 
 func (*cipherReverse) decipher(input string) string {
-	return reverse(input)
+	tmp := reverse(input)
+	return tmp
 }
 
 type cipherSlice struct {
@@ -44,7 +45,11 @@ func newCipherSlice(index int) *cipherSlice {
 }
 
 func (c *cipherSlice) decipher(input string) string {
-	return input[c.index:]
+	// return input[c.index:]
+	//return string([]rune(input)[c.index:])
+	output := []rune(input)
+	tmp := string(output[:c.index]) + string(output[c.index*2:])
+	return tmp
 }
 
 type cipherSwap struct {
@@ -57,8 +62,9 @@ func newCipherSwap(index int) *cipherSwap {
 
 func (c *cipherSwap) decipher(input string) string {
 	out := []rune(input)
-	out[0], out[c.index] = out[c.index], out[0]
-	return string(out)
+	out[0], out[c.index] = out[c.index%len(out)], out[0]
+	tmp := string(out)
+	return tmp
 }
 
 func reverse(input string) string {
