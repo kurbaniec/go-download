@@ -14,7 +14,7 @@ import (
 func GetStreams(
 	videoUrl string,
 	cipherStore map[string]*CipherOperations,
-	audioStreams []AudioStream,
+	audioStreams *[]AudioStream,
 ) {
 	var infoFile, embedFile, assetUrl string
 	var wg sync.WaitGroup
@@ -64,7 +64,7 @@ func GetStreams(
 		stream := entry.(map[string]interface{})
 		mime := stream["mimeType"].(string)
 		if strings.HasPrefix(mime, "audio") {
-			go addAudioStream(&audioStreams, stream, cipher, &wg)
+			go addAudioStream(audioStreams, stream, cipher, &wg)
 		} else {
 			wg.Done()
 		}
@@ -196,10 +196,11 @@ func GetVideoWatchPage(videoUrl string) string {
 	return data
 }
 
+/**
 func download(fileName string, metaUrl string) {
 	err := downloadFile(fileName, metaUrl)
 	if err != nil {
 		fmt.Println("Something went wrong, cant get meta-data")
 		os.Exit(0)
 	}
-}
+}*/

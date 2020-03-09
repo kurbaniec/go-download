@@ -5,3 +5,8 @@ meta1.txt
 meta2.txt
 meta3.txt
 *.txt
+*.opus
+*.flac
+*.webm
+*.mp4
+*.mp4a

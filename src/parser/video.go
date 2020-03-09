@@ -86,7 +86,10 @@ func addAudioStream(
 	mime := stream["mimeType"].(string)
 	itag := int(stream["itag"].(float64))
 	audioEncoding, container := getAudioEncodingAndContainer(mime)
-	url := buildStreamUrl(stream["cipher"].(string), cipher)
+	url, ok := stream["url"].(string)
+	if !ok {
+		url = buildStreamUrl(stream["cipher"].(string), cipher)
+	}
 	contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
 	bitrate := int(stream["bitrate"].(float64))
 	newAudioStream := NewAudioStream(itag, url, contentLength, bitrate, container, audioEncoding)
