@@ -1,6 +1,10 @@
 package parser
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+	"sync"
+)
 
 type Container string
 
@@ -71,8 +75,22 @@ func NewAudioStream(
 	}
 }
 
-func addAudioStream(array []AudioStream, newAudioStream AudioStream) {
-	array = append(array, newAudioStream)
+func addAudioStream(
+	audioStreams *[]AudioStream,
+	stream map[string]interface{},
+	cipher *CipherOperations,
+	wg *sync.WaitGroup,
+) {
+	defer wg.Done()
+	// fmt.Println(stream["qualityLabel"]) // not available in audio
+	mime := stream["mimeType"].(string)
+	itag := int(stream["itag"].(float64))
+	audioEncoding, container := getAudioEncodingAndContainer(mime)
+	url := buildStreamUrl(stream["cipher"].(string), cipher)
+	contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
+	bitrate := int(stream["bitrate"].(float64))
+	newAudioStream := NewAudioStream(itag, url, contentLength, bitrate, container, audioEncoding)
+	*audioStreams = append(*audioStreams, newAudioStream)
 }
 
 func getAudioEncodingAndContainer(mimeType string) (AudioEncoding, Container) {

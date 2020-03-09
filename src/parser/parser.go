@@ -56,23 +56,20 @@ func GetStreams(
 	}
 	//fmt.Println(dat["playabilityStatus"])
 	//fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
-	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"]
 	//fmt.Println(formats)
+	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"].([]interface{})
 
-	for _, entry := range formats.([]interface{}) {
+	wg.Add(len(formats))
+	for _, entry := range formats {
 		stream := entry.(map[string]interface{})
 		mime := stream["mimeType"].(string)
 		if strings.HasPrefix(mime, "audio") {
-			// fmt.Println(stream["qualityLabel"]) // not available in audio
-			itag := int(stream["itag"].(float64))
-			audioEncoding, container := getAudioEncodingAndContainer(mime)
-			url := buildStreamUrl(stream["cipher"].(string), cipher)
-			contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
-			bitrate := int(stream["bitrate"].(float64))
-			newAudioStream := NewAudioStream(itag, url, contentLength, bitrate, container, audioEncoding)
-			audioStreams = append(audioStreams, newAudioStream)
+			go addAudioStream(&audioStreams, stream, cipher, &wg)
+		} else {
+			wg.Done()
 		}
 	}
+	wg.Wait()
 	fmt.Println(audioStreams)
 }
 
