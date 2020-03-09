@@ -50,25 +50,23 @@ func GetConfig(videoUrl string, cipherStore map[string]*CipherOperations) {
 	if err := json.Unmarshal([]byte(info), &dat); err != nil {
 		fmt.Println("MARSHALL ERROr")
 	}
-	fmt.Println(dat["playabilityStatus"])
-	fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
+	//fmt.Println(dat["playabilityStatus"])
+	//fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"]
-	fmt.Println(formats)
+	//fmt.Println(formats)
 	for _, entry := range formats.([]interface{}) {
-		set := entry.(map[string]interface{})
-		fmt.Println(set["cipher"])
-		fmt.Println(buildStreamUrl(set["cipher"].(string), cipher))
+		stream := entry.(map[string]interface{})
+		fmt.Println(stream["cipher"])
+		fmt.Println(buildStreamUrl(stream["cipher"].(string), cipher))
+		itag := strconv.Itoa(int(stream["itag"].(float64)))
+		fmt.Println(itag)
+		fmt.Println(getVideoQuality(itag))
+		contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
+		fmt.Println(contentLength)
+		container := stream["mimeType"]
+		fmt.Println(container)
 
-		/**
-		streamUrl, err := url.QueryUnescape(set["ciphe`].(string))
-		if err != nil {
-			fmt.Println("STREAMURL AHHHHH!")
-			os.Exit(0)
-		}
-		fmt.Println(streamUrl)
-		fmt.Println(entry)
-		fmt.Println(entry["url"])
-		fmt.Println("---")*/
+		fmt.Println("---")
 	}
 
 	//var raw map[string]interface{}
