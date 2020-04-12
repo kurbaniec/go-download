@@ -50,6 +50,7 @@ func getAudioEncoding(audioEncoding string) AudioEncoding {
 }
 
 type AudioStream struct {
+	Title         string
 	Itag          int
 	Url           string
 	ContentLength int
@@ -59,6 +60,7 @@ type AudioStream struct {
 }
 
 func NewAudioStream(
+	title string,
 	itag int,
 	url string,
 	contentLength int,
@@ -66,6 +68,7 @@ func NewAudioStream(
 	container Container,
 	audioEncoding AudioEncoding) AudioStream {
 	return AudioStream{
+		Title:         title,
 		Itag:          itag,
 		Url:           url,
 		ContentLength: contentLength,
@@ -76,6 +79,7 @@ func NewAudioStream(
 }
 
 func addAudioStream(
+	title string,
 	audioStreams *[]AudioStream,
 	stream map[string]interface{},
 	cipher *CipherOperations,
@@ -92,7 +96,7 @@ func addAudioStream(
 	}
 	contentLength, _ := strconv.Atoi(stream["contentLength"].(string))
 	bitrate := int(stream["bitrate"].(float64))
-	newAudioStream := NewAudioStream(itag, url, contentLength, bitrate, container, audioEncoding)
+	newAudioStream := NewAudioStream(title, itag, url, contentLength, bitrate, container, audioEncoding)
 	*audioStreams = append(*audioStreams, newAudioStream)
 }
 

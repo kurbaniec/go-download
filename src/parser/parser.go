@@ -57,8 +57,9 @@ func GetStreams(
 	//fmt.Println(dat["playabilityStatus"])
 	//fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
 	//fmt.Println(formats)
+	//title := dat["title"].(string)
+	title := dat["videoDetails"].(map[string]interface{})["title"].(string)
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"].([]interface{})
-
 	fmt.Println("---")
 
 	wg.Add(len(formats))
@@ -66,7 +67,7 @@ func GetStreams(
 		stream := entry.(map[string]interface{})
 		mime := stream["mimeType"].(string)
 		if strings.HasPrefix(mime, "audio") {
-			go addAudioStream(audioStreams, stream, cipher, &wg)
+			go addAudioStream(title, audioStreams, stream, cipher, &wg)
 		} else {
 			url, ok := stream["url"].(string)
 			if !ok {
