@@ -5,15 +5,13 @@ import (
 	. "downloader/src/opts"
 	"downloader/src/parser"
 	"downloader/src/postprocesser"
+	"downloader/src/utils"
 	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
 )
 
 func main() {
-	//testUrl := "https://www.youtube.com/watch?v=THRDQmJSBs4"
-	//testUrl := "https://www.youtube.com/watch?v=ADlGkXAz1D0"
-
 	// Parse arguments
 	var opts Opts
 	args, err := flags.ParseArgs(&opts, os.Args)
@@ -25,16 +23,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Parse meta data to find song url and tags
 	cipherStore := map[string]*parser.CipherOperations{}
-	audioStreams := make([]parser.AudioStream, 0, 10)
-	parser.GetStreams(args[1], cipherStore, &audioStreams)
-
-	for _, stream := range audioStreams {
-		if stream.Container == parser.Webm {
-			fileInfo := download.FileLocation(stream)
-			download.DownloadStream(stream, fileInfo)
-			postprocesser.Convert(fileInfo)
-			break
-		}
-	}
+	audioStream := parser.GetAudioStream(args[1], cipherStore, &opts)
+	// Create file and download stream to it
+	fileInfo := utils.FileLocation(audioStream)
+	download.DownloadStream(audioStream, fileInfo)
+	// Postprocess file through command invocations for "ffmpeg
+	postprocesser.Convert(fileInfo, &opts)
 }

@@ -1,17 +1,49 @@
 package parser
 
 import (
+	. "downloader/src/opts"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 )
 
-func GetStreams(
+func GetAudioStream(
+	videoUrl string,
+	cipherStore map[string]*CipherOperations,
+	opts *Opts,
+) AudioStream {
+	audioStreams := make([]AudioStream, 0, 10)
+	getStreams(videoUrl, cipherStore, &audioStreams)
+	audioStreams = filterAndSortAudioStreams(audioStreams)
+	if opts.Quality == "high" {
+		return audioStreams[len(audioStreams)-1]
+	} else if opts.Quality == "medium" {
+		return audioStreams[len(audioStreams)/2]
+	} else {
+		return audioStreams[0]
+	}
+}
+
+func filterAndSortAudioStreams(audioStreams []AudioStream) []AudioStream {
+	filtered := make([]AudioStream, 0)
+	for _, stream := range audioStreams {
+		if stream.Container == Webm {
+			filtered = append(filtered, stream)
+		}
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return filtered[i].Bitrate < filtered[j].Bitrate
+	})
+	return filtered
+}
+
+func getStreams(
 	videoUrl string,
 	cipherStore map[string]*CipherOperations,
 	audioStreams *[]AudioStream,
