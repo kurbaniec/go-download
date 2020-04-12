@@ -11,7 +11,42 @@ import (
 	"sync"
 )
 
-type donwloadPart struct {
+type FileInfo struct {
+	Title         string
+	FileExtension string
+}
+
+func (fileInfo *FileInfo) FileName() string {
+	return fileInfo.Title + "." + fileInfo.FileExtension
+}
+
+// Creates and returns the location of the file
+// which is used for the download
+func FileLocation(stream parser.AudioStream) FileInfo {
+	// Create and open output file
+	fileInfo := FileInfo{
+		Title:         stream.Title,
+		FileExtension: string(stream.Container),
+	}
+	fileExists := true
+	songIndex := 1
+	for fileExists {
+		_, err := os.Stat(fileInfo.FileName())
+		if os.IsNotExist(err) {
+			fileExists = false
+		} else {
+			fileInfo.Title = fileInfo.Title + "(" + strconv.Itoa(songIndex) + ")"
+		}
+	}
+	_, err := os.Create(fileInfo.FileName())
+	if err != nil {
+		panic(err)
+	}
+	return fileInfo
+}
+
+// Struct used for downloading parts of the file
+type downloadPart struct {
 	fileBuffer []byte
 	url        string
 	chunkSize  int
@@ -19,16 +54,11 @@ type donwloadPart struct {
 	endRange   int
 }
 
-func DownloadStream(stream parser.AudioStream) {
-	fmt.Println("Donwloading")
-	fmt.Println(stream)
-
-	// Create and open output file
-	_, err := os.Create(string("output." + stream.Container))
-	if err != nil {
-		panic(err)
-	}
-	fo, err := os.OpenFile(string("output."+stream.Container), os.O_APPEND|os.O_WRONLY, 0644)
+// Downloads the audio track of a YouTube video
+// Returns the filename
+func DownloadStream(stream parser.AudioStream, fileInfo FileInfo) {
+	fmt.Println("Downloading...")
+	fo, err := os.OpenFile(fileInfo.FileName(), os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -38,14 +68,14 @@ func DownloadStream(stream parser.AudioStream) {
 			panic(err)
 		}
 	}()
-
-	var wg sync.WaitGroup
-
+	// Setup variables
 	fileSize := stream.ContentLength
-	rangeSize := 9437184 / 3
+	rangeSize := 9437184 / 10
 	chunkSize := 4096
 	startRange := 0
-	downloadParts := make([]*donwloadPart, 0)
+	downloadParts := make([]*downloadPart, 0)
+	var wg sync.WaitGroup
+	// Build download information for each part of the video
 	for i := 0; startRange < fileSize; i++ {
 		var endRange int
 		if (startRange + rangeSize) < fileSize {
@@ -53,7 +83,7 @@ func DownloadStream(stream parser.AudioStream) {
 		} else {
 			endRange = fileSize - 1
 		}
-		downloadParts = append(downloadParts, &donwloadPart{
+		downloadParts = append(downloadParts, &downloadPart{
 			fileBuffer: make([]byte, 0),
 			url:        stream.Url,
 			chunkSize:  chunkSize,
@@ -63,12 +93,12 @@ func DownloadStream(stream parser.AudioStream) {
 		wg.Add(1)
 		startRange += rangeSize
 	}
-
+	// Download audio in parts
 	for _, part := range downloadParts {
-		go downloadPart(part, &wg)
+		go part.download(&wg)
 	}
 	wg.Wait()
-
+	// Save audio buffer to file
 	for _, part := range downloadParts {
 		if _, err := fo.Write(part.fileBuffer); err != nil {
 			panic(err)
@@ -76,7 +106,7 @@ func DownloadStream(stream parser.AudioStream) {
 	}
 }
 
-func downloadPart(part *donwloadPart, wg *sync.WaitGroup) {
+func (part *downloadPart) download(wg *sync.WaitGroup) {
 	defer wg.Done()
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", part.url, nil)
@@ -89,29 +119,20 @@ func downloadPart(part *donwloadPart, wg *sync.WaitGroup) {
 	}
 	defer res.Body.Close()
 
-	chunkPosition := 0
-
 	if strconv.Itoa(res.StatusCode)[0] == '2' {
 		for {
 			reader := bufio.NewReader(res.Body)
-			var buffer []byte
-			if chunkPosition+part.chunkSize < part.endRange {
-				buffer = make([]byte, part.chunkSize)
-			} else {
-				buffer = make([]byte, (chunkPosition+part.chunkSize)%part.endRange)
-			}
+			buffer := make([]byte, part.chunkSize)
 			n, err := reader.Read(buffer)
-			if err == nil {
+			if err == nil || err == io.EOF {
 				part.fileBuffer = append(part.fileBuffer, buffer[:n]...)
-			} else {
 				if err == io.EOF {
 					break
-				} else {
-					fmt.Println("Something went wrong downloading file: " + err.Error())
-					os.Exit(1)
 				}
+			} else {
+				fmt.Println("Something went wrong downloading file: " + err.Error())
+				os.Exit(1)
 			}
-			chunkPosition += part.chunkSize
 		}
 	} else {
 		fmt.Println("Could not retrieve file from server.")
