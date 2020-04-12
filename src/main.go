@@ -22,7 +22,6 @@ func main() {
 		fmt.Println("URL parameter is missing. Please try again with it.")
 		os.Exit(0)
 	}
-
 	// Parse meta data to find song url and tags
 	cipherStore := map[string]*parser.CipherOperations{}
 	audioStream := parser.GetAudioStream(args[1], cipherStore, &opts)

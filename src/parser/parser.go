@@ -62,37 +62,27 @@ func getStreams(
 	}
 
 	cipher := cipherStore[assetUrl]
-
 	metaEncoded := infoFile
-	//fmt.Println(metaEncoded)
 	metaDecoded, err := url.QueryUnescape(metaEncoded)
 	if err != nil {
 		fmt.Println("Something went wrong reading meta-data")
 		os.Exit(0)
 	}
-	//fmt.Println(metaDecoded)
+
 	metaArray := strings.Split(metaDecoded, "&")
 	var info string
 	for _, entry := range metaArray {
-		//fmt.Println(entry)
 		if strings.HasPrefix(entry, "player_response") {
 			info = entry[16:]
 		}
 	}
 
-	fmt.Println(info)
-
 	var dat map[string]interface{}
 	if err := json.Unmarshal([]byte(info), &dat); err != nil {
 		fmt.Println("MARSHALL ERROr")
 	}
-	//fmt.Println(dat["playabilityStatus"])
-	//fmt.Println(dat["streamingData"].(map[string]interface{})["formats"])
-	//fmt.Println(formats)
-	//title := dat["title"].(string)
 	title := dat["videoDetails"].(map[string]interface{})["title"].(string)
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"].([]interface{})
-	fmt.Println("---")
 
 	wg.Add(len(formats))
 	for _, entry := range formats {
@@ -101,16 +91,16 @@ func getStreams(
 		if strings.HasPrefix(mime, "audio") {
 			go addAudioStream(title, audioStreams, stream, cipher, &wg)
 		} else {
-			url, ok := stream["url"].(string)
+			// Video streams are not supported at the momemt
+			/**url, ok := stream["url"].(string)
 			if !ok {
 				url = buildStreamUrl(stream["cipher"].(string), cipher)
 			}
-			fmt.Println(url)
+			//fmt.Println(url)*/
 			wg.Done()
 		}
 	}
 	wg.Wait()
-	fmt.Println(audioStreams)
 }
 
 func getCipherSrc(assetFile string) *CipherOperations {
@@ -118,9 +108,7 @@ func getCipherSrc(assetFile string) *CipherOperations {
 	errorHandler(err)
 	cipherFunc := regexFunc.FindString(assetFile)
 	if cipherFunc != "" {
-		fmt.Println(cipherFunc)
-
-		cipherName := cipherFunc[:strings.Index(cipherFunc, "=")]
+		//fmt.Println(cipherFunc)
 		cipherBody := cipherFunc[strings.Index(cipherFunc, "{")+1 : strings.Index(cipherFunc, "}")]
 		cipherStatements := strings.Split(cipherBody, ";")
 
@@ -136,16 +124,10 @@ func getCipherSrc(assetFile string) *CipherOperations {
 
 		for _, statement := range cipherStatements {
 			// Get function name of statement
-			//regexFunc, err = regexp.Compile(`\w+(?:.|\[)(""?\w+(?:"")?)]?\(`)
-			//errorHandler(err)
-			//statementName := regexFunc.FindString(statement)
-
 			statementName := statement[strings.Index(statement, ".")+1 : strings.Index(statement, "(")]
-
 			if statementName == "" {
 				continue
 			}
-
 			if check, _ := regexp.MatchString(statementName+`:\bfunction\b\([a],b\).(\breturn\b)?.?\w+\.`, cipherAlgorithmBody);
 			// Check if slice operation
 			check {
@@ -166,15 +148,16 @@ func getCipherSrc(assetFile string) *CipherOperations {
 				operations.addOperation(newCipherReverse())
 			}
 		}
-
-		fmt.Println(cipherName)
-		fmt.Println(cipherBody)
-		fmt.Println(cipherAlgorithmName)
-		fmt.Println(cipherAlgorithmBody)
-
+		// cipherName := cipherFunc[:strings.Index(cipherFunc, "=")]
+		//fmt.Println(cipherName)
+		//fmt.Println(cipherBody)
+		//fmt.Println(cipherAlgorithmName)
+		//fmt.Println(cipherAlgorithmBody)
 		return operations
 	} else {
-		// TODO breaking youtube api change error
+		fmt.Println("Seems like the YouTube API has changed...")
+		fmt.Println("Please contact the repo owner about this breaking change.")
+		os.Exit(1)
 	}
 	return nil
 }

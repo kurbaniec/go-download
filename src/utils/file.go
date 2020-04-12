@@ -18,14 +18,17 @@ func (fileInfo *FileInfo) FileName() string {
 func (fileInfo *FileInfo) SearchFreePath() {
 	fileExists := true
 	songIndex := 1
+	fileTitle := fileInfo.Title
 	for fileExists {
-		_, err := os.Stat(fileInfo.FileName())
+		_, err := os.Stat(fileTitle + "." + fileInfo.FileExtension)
 		if os.IsNotExist(err) {
 			fileExists = false
 		} else {
-			fileInfo.Title = fileInfo.Title + "(" + strconv.Itoa(songIndex) + ")"
+			fileTitle = fileInfo.Title + "(" + strconv.Itoa(songIndex) + ")"
+			songIndex += 1
 		}
 	}
+	fileInfo.Title = fileTitle
 }
 
 // Creates and returns the location of the file

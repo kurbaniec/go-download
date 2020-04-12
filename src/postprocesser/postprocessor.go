@@ -3,11 +3,13 @@ package postprocesser
 import (
 	. "downloader/src/opts"
 	. "downloader/src/utils"
+	"fmt"
 	"os"
 	"os/exec"
 )
 
 func Convert(fileInfo FileInfo, opts *Opts) {
+	fmt.Println("Converting...")
 	downloadedFile := fileInfo.FileName()
 	var codec string
 	if !opts.Manual {
