@@ -154,7 +154,7 @@ func GetVideoInfo(videoUrl string, output *string, wg *sync.WaitGroup) {
 	videoId := getVideoId(videoUrl)
 	eurl := url.QueryEscape("https://youtube.googleapis.com/v/" + videoId)
 	metaUrl := "https://youtube.com/get_video_info?video_id=" + videoId +
-		"&el=embedded&eurl=" + eurl + "&hl=en"
+		"&el=embedded&eurl=" + eurl + "&hl=en_US"
 	data, err := downloadAsString(metaUrl)
 	errorHandler(err)
 	*output = data
@@ -167,7 +167,7 @@ func GetVideoEmbedPage(videoUrl string, output *string, wg *sync.WaitGroup) {
 	var result string
 	for flag {
 		videoId := getVideoId(videoUrl)
-		metaUrl := "https://youtube.com/embed/" + videoId + "?disable_polymer=true&hl=en"
+		metaUrl := "https://youtube.com/embed/" + videoId + "?hl=en"
 		data, err := downloadAsString(metaUrl)
 		errorHandler(err)
 		if strings.Contains(data, search) {
@@ -194,20 +194,3 @@ func getAssetFile(assetUrl string) string {
 	errorHandler(err)
 	return assetFile
 }
-
-func GetVideoWatchPage(videoUrl string) string {
-	videoId := getVideoId(videoUrl)
-	metaUrl := "https://youtube.com/watch?v=" + videoId + "&disable_polymer=true&bpctr=9999999999&hl=en"
-	data, err := downloadAsString(metaUrl)
-	errorHandler(err)
-	return data
-}
-
-/**
-func download(fileName string, metaUrl string) {
-	err := downloadFile(fileName, metaUrl)
-	if err != nil {
-		fmt.Println("Something went wrong, cant get meta-data")
-		os.Exit(0)
-	}
-}*/
