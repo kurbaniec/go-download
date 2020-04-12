@@ -11,16 +11,28 @@ import (
 	"sync"
 )
 
+type donwloadPart struct {
+	fileBuffer []byte
+	url        string
+	chunkSize  int
+	startRange int
+	endRange   int
+}
+
 func DownloadStream(stream parser.AudioStream) {
 	fmt.Println("Donwloading")
 	fmt.Println(stream)
 
-	// open output file
-	fo, err := os.Create(string("output." + stream.Container))
+	// Create and open output file
+	_, err := os.Create(string("output." + stream.Container))
 	if err != nil {
 		panic(err)
 	}
-	// close fo on exit and check for its returned error
+	fo, err := os.OpenFile(string("output."+stream.Container), os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	// Close output file on exit
 	defer func() {
 		if err := fo.Close(); err != nil {
 			panic(err)
@@ -29,45 +41,47 @@ func DownloadStream(stream parser.AudioStream) {
 
 	var wg sync.WaitGroup
 
-	rangeSize := 9437184
-	partsCount := stream.ContentLength / rangeSize
-	endSize := stream.ContentLength % rangeSize
-	hasEndPart := false
-	if endSize != 0 {
-		partsCount += 1
-		hasEndPart = true
-	}
-
-	fileBuffer := make([][]byte, partsCount)
-	for i := 0; i < partsCount; i++ {
-		startRange := i * rangeSize
+	fileSize := stream.ContentLength
+	rangeSize := 9437184 / 3
+	chunkSize := 4096
+	startRange := 0
+	downloadParts := make([]*donwloadPart, 0)
+	for i := 0; startRange < fileSize; i++ {
 		var endRange int
-		if hasEndPart && i == partsCount-1 {
-			endRange = endSize - 1
+		if (startRange + rangeSize) < fileSize {
+			endRange = startRange + rangeSize - 1
 		} else {
-			endRange = ((i + 1) * rangeSize) - 1
+			endRange = fileSize - 1
 		}
-		fileBuffer[i] = make([]byte, 0)
+		downloadParts = append(downloadParts, &donwloadPart{
+			fileBuffer: make([]byte, 0),
+			url:        stream.Url,
+			chunkSize:  chunkSize,
+			startRange: startRange,
+			endRange:   endRange,
+		})
 		wg.Add(1)
-		go donwloadPart(i, &fileBuffer[i], stream.Url, startRange, endRange, &wg)
+		startRange += rangeSize
 	}
 
+	for _, part := range downloadParts {
+		go downloadPart(part, &wg)
+	}
 	wg.Wait()
 
-	for i := 0; i < partsCount; i++ {
-		if _, err := fo.Write(fileBuffer[i]); err != nil {
+	for _, part := range downloadParts {
+		if _, err := fo.Write(part.fileBuffer); err != nil {
 			panic(err)
 		}
 	}
-
 }
 
-func donwloadPart(index int, fileBuffer *[]byte, url string, startRange int, endRange int, wg *sync.WaitGroup) {
+func downloadPart(part *donwloadPart, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", part.url, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0")
-	req.Header.Set("Range", "bytes="+strconv.Itoa(startRange)+"-"+strconv.Itoa(endRange))
+	req.Header.Set("Range", "bytes="+strconv.Itoa(part.startRange)+"-"+strconv.Itoa(part.endRange))
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -75,13 +89,20 @@ func donwloadPart(index int, fileBuffer *[]byte, url string, startRange int, end
 	}
 	defer res.Body.Close()
 
+	chunkPosition := 0
+
 	if strconv.Itoa(res.StatusCode)[0] == '2' {
-		reader := bufio.NewReader(res.Body)
-		buffer := make([]byte, 81920)
 		for {
+			reader := bufio.NewReader(res.Body)
+			var buffer []byte
+			if chunkPosition+part.chunkSize < part.endRange {
+				buffer = make([]byte, part.chunkSize)
+			} else {
+				buffer = make([]byte, (chunkPosition+part.chunkSize)%part.endRange)
+			}
 			n, err := reader.Read(buffer)
 			if err == nil {
-				*fileBuffer = append(*fileBuffer, buffer[:n]...)
+				part.fileBuffer = append(part.fileBuffer, buffer[:n]...)
 			} else {
 				if err == io.EOF {
 					break
@@ -90,6 +111,7 @@ func donwloadPart(index int, fileBuffer *[]byte, url string, startRange int, end
 					os.Exit(1)
 				}
 			}
+			chunkPosition += part.chunkSize
 		}
 	} else {
 		fmt.Println("Could not retrieve file from server.")
