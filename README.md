@@ -1,16 +1,17 @@
 <h1 align="center">
   <br>
-  <img src="images/Logo/Logo.png" alt="go download" width="500"></a>
+  <img src="images/Logo/Logo.png" alt="go download" width="250"></a>
   <br>
-  Go Dowload!
+  Go Download!
   <br>
 </h1>
+
 
 <h4 align="center">A YouTube Downloader for audio files written in Go.</h4>
 
 ## 📝Requirements
 
-This package uses [FFmpeg](https://www.ffmpeg.org/)  to convert audio streams to audio files.
+This package uses [FFmpeg](https://www.ffmpeg.org/)  to convert YouTube's audio streams to audio files.
 
 Please install it locally and add it to your system path.
 
@@ -22,9 +23,27 @@ go build -o ./bin/godownload[.exe|.sh|...] downloader/src
 
 ## 🚴 Run
 
-TODO
+```
+godownload <URL> [Options]
+```
 
-## Sources
+### 📎 Options
+
+```
+-q, --quality       Select stream quality. Use "high", "medium" or "low".
+                    This option will also define the codec and file type 
+                    of the donwload. This option defaults to "high".
+                    "high"   => codec flac      .flac
+                    "medium" => codec libvorbis .ogg
+                    "low"    => codec mp3       .mp3
+-m, --manual		Choose codec and file type independently from the 
+                    selected stream quality. This flac needs to be used
+                    with the following options.
+-a, --audio-format  Chose file extension of the file (flac, ogg, mp3, ...).
+-c, --codec			Specify the codec to use (flac, libvorbis, mp3, ...).
+```
+
+
 
 * [Reverse-Engineering Youtube - Alexey Golub | 07.03.2020](https://tyrrrz.me/blog/reverse-engineering-youtube)
 * [YoutubeExplode | 07.03.2020](https://github.com/Tyrrrz/YoutubeExplode)
