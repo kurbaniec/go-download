@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+// Return audio stream information of the given video and specified quality
 func GetAudioStream(
 	videoUrl string,
 	cipherStore map[string]*CipherOperations,
@@ -30,6 +31,8 @@ func GetAudioStream(
 	}
 }
 
+// Filter audio streams to only feature audio containers with "webm" and sort them according
+// to their quality (= bitrate).
 func filterAndSortAudioStreams(audioStreams []AudioStream) []AudioStream {
 	filtered := make([]AudioStream, 0)
 	for _, stream := range audioStreams {
@@ -43,11 +46,13 @@ func filterAndSortAudioStreams(audioStreams []AudioStream) []AudioStream {
 	return filtered
 }
 
+// Returns all audio streams of the given video
 func getStreams(
 	videoUrl string,
 	cipherStore map[string]*CipherOperations,
 	audioStreams *[]AudioStream,
 ) {
+	// Get all video information
 	var infoFile, embedFile, assetUrl string
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -55,20 +60,20 @@ func getStreams(
 	go GetVideoEmbedPage(videoUrl, &embedFile, &wg)
 	wg.Wait()
 	assetUrl = getAssetUrl(embedFile)
-
+	// Check if cipher to decrypt url was already scrambled
 	if _, ok := cipherStore[assetUrl]; !ok {
+		// If not, get cipher
 		assetFile := getAssetFile(assetUrl)
 		cipherStore[assetUrl] = getCipherSrc(assetFile)
 	}
-
 	cipher := cipherStore[assetUrl]
+	// Parse meta information
 	metaEncoded := infoFile
 	metaDecoded, err := url.QueryUnescape(metaEncoded)
 	if err != nil {
 		fmt.Println("Something went wrong reading meta-data")
 		os.Exit(0)
 	}
-
 	metaArray := strings.Split(metaDecoded, "&")
 	var info string
 	for _, entry := range metaArray {
@@ -76,7 +81,6 @@ func getStreams(
 			info = entry[16:]
 		}
 	}
-
 	var dat map[string]interface{}
 	if err := json.Unmarshal([]byte(info), &dat); err != nil {
 		fmt.Println("MARSHALL ERROr")
@@ -85,13 +89,14 @@ func getStreams(
 	formats := dat["streamingData"].(map[string]interface{})["adaptiveFormats"].([]interface{})
 
 	wg.Add(len(formats))
+	// Parse meta information of all audio streams
 	for _, entry := range formats {
 		stream := entry.(map[string]interface{})
 		mime := stream["mimeType"].(string)
 		if strings.HasPrefix(mime, "audio") {
 			go addAudioStream(title, audioStreams, stream, cipher, &wg)
 		} else {
-			// Video streams are not supported at the momemt
+			// Video streams are not supported at the moment
 			/**url, ok := stream["url"].(string)
 			if !ok {
 				url = buildStreamUrl(stream["cipher"].(string), cipher)
@@ -111,7 +116,6 @@ func getCipherSrc(assetFile string) *CipherOperations {
 		//fmt.Println(cipherFunc)
 		cipherBody := cipherFunc[strings.Index(cipherFunc, "{")+1 : strings.Index(cipherFunc, "}")]
 		cipherStatements := strings.Split(cipherBody, ";")
-
 		regexFunc, err = regexp.Compile(`(\w+).\w+\(\w+,\d+\);`)
 		errorHandler(err)
 		cipherAlgorithmName := strings.Split(regexFunc.FindString(cipherBody), ".")[0]
@@ -119,9 +123,7 @@ func getCipherSrc(assetFile string) *CipherOperations {
 		regexFunc, err = regexp.Compile(`var\s+` + cipherAlgorithmName + `=\{((?s)\w+:function\(\w+(,\w+)?\)\{(.*?)\}),?\};`)
 		errorHandler(err)
 		cipherAlgorithmBody := strings.ReplaceAll(regexFunc.FindString(assetFile), "\n", "")
-
 		operations := newCipherOperations()
-
 		for _, statement := range cipherStatements {
 			// Get function name of statement
 			statementName := statement[strings.Index(statement, ".")+1 : strings.Index(statement, "(")]

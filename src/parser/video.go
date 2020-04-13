@@ -78,6 +78,7 @@ func NewAudioStream(
 	}
 }
 
+// Returns a parsed audio stream.
 func addAudioStream(
 	title string,
 	audioStreams *[]AudioStream,
@@ -86,7 +87,6 @@ func addAudioStream(
 	wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
-	// fmt.Println(stream["qualityLabel"]) // not available in audio
 	mime := stream["mimeType"].(string)
 	itag := int(stream["itag"].(float64))
 	audioEncoding, container := getAudioEncodingAndContainer(mime)

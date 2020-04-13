@@ -37,7 +37,7 @@ godownload <URL> [Options]
                     "medium" => codec libvorbis .ogg
                     "low"    => codec mp3       .mp3
 -m, --manual        Choose codec and file type independently from the 
-                    selected stream quality. This flac needs to be used
+                    selected stream quality. This flag needs to be used
                     with the following options.
 -a, --audio-format  Chose file extension of the file (flac, ogg, mp3, ...).
 -c, --codec         Specify the codec to use (flac, libvorbis, mp3, ...).
@@ -56,3 +56,11 @@ godownload <URL> [Options]
 * [Convert files with FFmep | 12.04.2020](https://superuser.com/questions/339023/convert-audio-file-to-flac-with-ffmpeg)
 * [The Go Gopher Logo - Renee French | 13.04.2020](https://commons.wikimedia.org/wiki/File:Gogophercolor.png)
 
+## License
+
+MIT
+
+---
+
+> GitHub [kurbaniec](https://github.com/kurbaniec-tgm) &nbsp;&middot;&nbsp;
+> Mail [at.kacper.urbaniec@gmail.com](mailto:at.kacper.urbaniec@gmail.com)

@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Returns the deciphered URL.
 func buildStreamUrl(cipher string, operations *CipherOperations) string {
 	cipherMap := getCipherMap(cipher)
 	signature := cipherMap["s"]
@@ -13,6 +14,7 @@ func buildStreamUrl(cipher string, operations *CipherOperations) string {
 	return url
 }
 
+// Parses the cipher tag.
 func getCipherMap(cipher string) map[string]string {
 	cipherMap := make(map[string]string)
 	params := strings.Split(cipher, "&")
