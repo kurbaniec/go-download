@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="images/Logo/logo.png" alt="go download" width="500"></a>
+  <img src="images/Logo/Logo.png" alt="go download" width="500"></a>
   <br>
   Go Dowload!
   <br>
