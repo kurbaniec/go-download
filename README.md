@@ -36,14 +36,16 @@ godownload <URL> [Options]
                     "high"   => codec flac      .flac
                     "medium" => codec libvorbis .ogg
                     "low"    => codec mp3       .mp3
--m, --manual		Choose codec and file type independently from the 
+-m, --manual        Choose codec and file type independently from the 
                     selected stream quality. This flac needs to be used
                     with the following options.
 -a, --audio-format  Chose file extension of the file (flac, ogg, mp3, ...).
--c, --codec			Specify the codec to use (flac, libvorbis, mp3, ...).
+-c, --codec         Specify the codec to use (flac, libvorbis, mp3, ...).
 ```
 
 
+
+## Sources
 
 * [Reverse-Engineering Youtube - Alexey Golub | 07.03.2020](https://tyrrrz.me/blog/reverse-engineering-youtube)
 * [YoutubeExplode | 07.03.2020](https://github.com/Tyrrrz/YoutubeExplode)
