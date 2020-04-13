@@ -3,6 +3,7 @@ package utils
 import (
 	"downloader/src/parser"
 	"os"
+	"regexp"
 	"strconv"
 )
 
@@ -16,6 +17,7 @@ func (fileInfo *FileInfo) FileName() string {
 }
 
 func (fileInfo *FileInfo) SearchFreePath() {
+	fileInfo.filterTitle()
 	fileExists := true
 	songIndex := 1
 	fileTitle := fileInfo.Title
@@ -29,6 +31,11 @@ func (fileInfo *FileInfo) SearchFreePath() {
 		}
 	}
 	fileInfo.Title = fileTitle
+}
+
+func (fileInfo *FileInfo) filterTitle() {
+	var illegal = regexp.MustCompile("[^a-zA-Z0-9.-]")
+	fileInfo.Title = illegal.ReplaceAllString(fileInfo.Title, "_")
 }
 
 // Creates and returns the location of the file
